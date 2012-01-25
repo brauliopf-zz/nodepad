@@ -1,0 +1,6 @@
+h2 New Document
+form(method='post', action='/documents')
+	!=partial('../partials/documents/fields', { locals: { d: d } })
+
+//- action='/documents' => when submitted, it redirects to /document
+//- Not equal means include a variable without escaping it first

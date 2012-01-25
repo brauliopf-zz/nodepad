@@ -1,0 +1,21 @@
+
+//- Indentations represent tag nesting
+//- The equals sign means include a variable
+//- Not equal means include a variable without escaping it first
+//- The hyphen sign allows inclusion of JavaScript
+
+h1 Your Documents
+
+//- p
+//- 	a(class='button', href='/documents/new') + New Document
+
+//- Indentations represent tag nesting
+
+//- ul
+//-   - for (var d in documents)
+//- //- The hyphen sign allows inclusion of JavaScript
+//-     li
+//-       a(class='button', href='/documents/' + documents[d].id + '/edit') Edit
+//-       a(class='button destroy', href='/documents/' + documents[d].id) Delete
+//-       a(href='/documents/' + documents[d].id)
+//-         =documents[d].title
