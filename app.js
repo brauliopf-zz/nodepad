@@ -6,9 +6,7 @@ var express = require('express'),
 	stylus = require('stylus'),
 	app = module.exports = express.createServer(),
     models = require('./models'),
-    db,
-	Document,
-	User;
+    db, Document, User, LoginToken;
 
 // Configuration
 // Middleware ordering is important
@@ -45,13 +43,51 @@ app.configure('test', function() {
 models.defineModels(mongoose, function() {
 	app.Document = Document = mongoose.model('DocumentModel');
 	app.User = User = mongoose.model('UserModel');
+	app.LoginToken = LoginToken = mongoose.model('LoginTokenModel');
 	db = mongoose.connect(app.set('db-uri')); //Instantiate database connection
-})
+});
+
+function authenticateFromLoginToken(req, res, next) {
+   var cookie = JSON.parse(req.cookies.logintoken);
+
+   LoginToken.findOne({
+		email: cookie.email,
+		series: cookie.series,
+		token: cookie.token
+   }, (function(err, token) {
+        if (!token) {
+            res.redirect('/sessions/new');
+            return;
+        }
+
+        User.findOne({ email: token.email }, function(err, user) {
+			// Get user to sign in
+            if (user) {
+                req.session.user_id = user.id;
+                req.currentUser = user;
+
+				// Renew Token
+                token.token = token.randomToken();
+                token.save(function() {
+                    res.cookie('logintoken', token.cookieValue, {
+                        expires: new Date(Date.now() + 2 * 604800000),
+                        path: '/'
+                    });
+                    next();
+                });
+            } else {
+                res.redirect('/sessions/new');
+            }
+       	});
+   	}));
+}
 
 function loadUser(req, res, next) {
+	// Se já existe uma sessão iniciada com um id
 	if (req.session.user_id) {
 		User.findById(req.session.user_id, function(err, user) {
 			if(!err) {
+				// Verifica se o usuário que quer acessar é o dono da sessão
 				if (user) {
 					 req.currentUser = user;
 					 next();
@@ -60,8 +96,10 @@ function loadUser(req, res, next) {
 				}
 			}
 		});
-	// } else if (req.cookies.logintoken) {
-	//     	authenticateFromLoginToken(req, res, next);
+	// Se não existe uma sessão iniciada, verifica os cookies => autentica e faz login
+	} else if (req.cookies.logintoken) {
+	    	authenticateFromLoginToken(req, res, next);
+	// Se nem cookie existe, então o jeito é fazer login
 	} else {
 		res.redirect('/sessions/new');
 	}
@@ -158,7 +196,7 @@ app.del('/sessions', loadUser, function(req, res) {
  * Route: Documents
  */
 // Home
-app.get('/', function(req, res) {
+app.get('/', loadUser, function(req, res) {
 	Document.find({}, [], { sort: ['title', 'descending'] }, function(err, docs) {
 		if(!err) {
 			res.render('documents', {
@@ -169,7 +207,7 @@ app.get('/', function(req, res) {
 });
 
 // Edit
-app.get('/documents/:id.:format?/edit', function(req, res) {
+app.get('/documents/:id.:format?/edit', loadUser, function(req, res) {
 	Document.findById(req.params.id, function(err, doc) {
 		if(!err) {
 			res.render('documents/edit.jade', {
@@ -180,7 +218,7 @@ app.get('/documents/:id.:format?/edit', function(req, res) {
 });
 
 // New
-app.get('/documents/new', function(req, res) {
+app.get('/documents/new', loadUser, function(req, res) {
 	res.render('documents/new.jade', {
 		locals: { d: new Document() }
 	});
@@ -188,7 +226,7 @@ app.get('/documents/new', function(req, res) {
 
 /* ***CRUD Document*** */
 // Create document
-app.post('/documents.:format?', function(req, res) {
+app.post('/documents.:format?', loadUser, function(req, res) {
     var d = new Document(req.body.document);
     d.save( function(err) {
         if(!err) {
@@ -205,10 +243,9 @@ app.post('/documents.:format?', function(req, res) {
 });
 
 // Read document
-app.get('/documents/:id.:format?', function(req, res) {
+app.get('/documents/:id.:format?', loadUser, function(req, res) {
     Document.findById(req.params.id, function(err, doc) {
 		if(!err) {
-			console.log(doc);
 	        switch (req.params.format) {
 		        case 'json':
 		            res.send(doc.__doc);
@@ -224,7 +261,7 @@ app.get('/documents/:id.:format?', function(req, res) {
 });
 
 // Update document
-app.put('/documents/:id.:format?', function(req, res) {
+app.put('/documents/:id.:format?', loadUser, function(req, res) {
 	// Load the document
 	Document.findById(req.body.document.id, function(err, doc) {
 		if(!err) {
@@ -249,7 +286,7 @@ app.put('/documents/:id.:format?', function(req, res) {
 });
 
 // Delete document
-app.del('/documents/:id.:format?', function(req, res) {
+app.del('/documents/:id.:format?', loadUser, function(req, res) {
 	// Load the document
 	Document.findById(req.params.id, function(err, doc) {
 		if(!err) {
@@ -261,12 +298,12 @@ app.del('/documents/:id.:format?', function(req, res) {
 			doc.remove( function() {
 				// Respond according to the request format
 				switch (req.params.format) {
-				case 'json':
-				res.send(d.__doc);
-				break;
+					case 'json':
+						res.send(d.__doc);
+					break;
 
-				default:
-				res.redirect('/');
+					default:
+						res.redirect('/');
 				}
 			});
 		}
@@ -275,3 +312,34 @@ app.del('/documents/:id.:format?', function(req, res) {
 
 app.listen(3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+
+/*
+ * Debugging
+ */
+function removeTokens (tokens) {
+	for (t in tokens){
+		tokens[t].remove( function() {
+			// Respond according to the request format
+			switch (tokens[t].format) {
+				case 'json':
+					res.send(d.__t);
+				break;
+	
+				default:
+			}
+		});
+	}
+}
+
+function listTokens (where) {
+	LoginToken.find({}, function(err, tokens) {
+		if(!err) {
+			// removeTokens(tokens);
+			console.log('Im at:' + where + '	');
+			console.log(tokens);
+		}
+	});
+
+}
+
+// listTokens('end');
