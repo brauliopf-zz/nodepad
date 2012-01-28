@@ -1,0 +1,17 @@
+h2 View User
+p
+	a(href='/users', class='button')
+		&larr; All Users
+	a(class='button', href='/users/' + user.id + '/edit') Edit
+p
+	b Email: 
+	=user.email
+p
+	b hashed_password: 
+	=user.hashed_password
+p
+	b salt: 
+	=user.salt
+p
+	b user_id: 
+	=user.id

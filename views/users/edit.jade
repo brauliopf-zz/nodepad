@@ -1,0 +1,9 @@
+h2 Edit User
+form(method='post', action='/users/' + user.id)
+	input(name='user[id]', value=user.id, type='hidden')
+	input(name='_method', value='PUT', type='hidden')
+	!=partial('../partials/users_fields', { locals: { user: user } })
+	div
+		input(type='submit', value='Save')
+		span \ or 
+			a(class='button', href='/users') Cancel

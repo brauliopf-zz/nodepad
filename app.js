@@ -1,7 +1,3 @@
-//module.exports the object that's actually returned when you require a module
-//note that creating an http server with express is a little different from the simple node.js
-// (no callback function - at least explicitly)
-
 var express = require('express'),
 	connect = require('connect'), // http://www.senchalabs.org/connect/
 	mongoose = require('mongoose'), //Load library
@@ -63,9 +59,11 @@ function loadUser(req, res, next) {
 					 res.redirect('/sessions/new');
 				}
 			}
-	});
+		});
+	// } else if (req.cookies.logintoken) {
+	//     	authenticateFromLoginToken(req, res, next);
 	} else {
-	res.redirect('/sessions/new');
+		res.redirect('/sessions/new');
 	}
 }
 
@@ -124,25 +122,22 @@ app.post('/sessions', function(req, res) {
 		if(!err) {
 			if (user && user.authenticate(req.body.user.password)) {
 				req.session.user_id = user.id;
-				res.redirect('/documents');
 
-		        // // Remember me
-		        // 		        if (req.body.remember_me) {
-		        // 		            var loginToken = new LoginToken({
-		        // 		                email: user.email
-		        // 		            });
-		        // 		            loginToken.save(function() {
-		        // 		                res.cookie('logintoken', loginToken.cookieValue, {
-		        // 		                    expires: new Date(Date.now() + 2 * 604800000),
-		        // 		                    path: '/'
-		        // 		                });
-		        // 		                res.redirect('/documents');
-		        // 		            });
-		        // 		        } else {
-		        // 		            res.redirect('/documents');
-		        // 		        }
+		        // Remember me
+   		        if (req.body.remember_me) {
+   		            var loginToken = new LoginToken({
+   		                email: user.email
+   		            });
+   		            loginToken.save(function() {
+   		                res.cookie('logintoken', loginToken.cookieValue, {
+   		                    expires: new Date(Date.now() + 2 * 604800000),
+   		                    path: '/'
+   		                });
+   		                res.redirect('/');
+   		            });
+   		        } else res.redirect('/');
 
-		    } else {
+			} else {
 				req.flash('error', 'Incorrect credentials');
 				res.redirect('/sessions/new');
 			}
@@ -163,7 +158,7 @@ app.del('/sessions', loadUser, function(req, res) {
  * Route: Documents
  */
 // Home
-app.get('/', loadUser, function(req, res) {
+app.get('/', function(req, res) {
 	Document.find({}, [], { sort: ['title', 'descending'] }, function(err, docs) {
 		if(!err) {
 			res.render('documents', {
@@ -174,7 +169,7 @@ app.get('/', loadUser, function(req, res) {
 });
 
 // Edit
-app.get('/documents/:id.:format?/edit', loadUser, function(req, res) {
+app.get('/documents/:id.:format?/edit', function(req, res) {
 	Document.findById(req.params.id, function(err, doc) {
 		if(!err) {
 			res.render('documents/edit.jade', {
@@ -185,7 +180,7 @@ app.get('/documents/:id.:format?/edit', loadUser, function(req, res) {
 });
 
 // New
-app.get('/documents/new', loadUser, function(req, res) {
+app.get('/documents/new', function(req, res) {
 	res.render('documents/new.jade', {
 		locals: { d: new Document() }
 	});

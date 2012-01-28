@@ -1,0 +1,16 @@
+div
+  label Name:
+  input(name='offer[name]', value=offer.name || '')
+div
+  label Date:
+  input(name='offer[date]', value=offer.date || '')
+div
+  label Description:
+  div
+    textarea(name='offer[description]')
+      =offer.description || ''
+div
+  label Image:
+  input(name='offer[image]', value=offer.image || '')
+div
+  input(type='submit', value='Save')

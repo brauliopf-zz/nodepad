@@ -1,0 +1,13 @@
+h1 Users
+
+p
+	a(class='button', href='/users/new') + User
+
+ul
+	- for (d in users) {
+	li
+		a(class='button', href='/users/' + users[d].id + '/edit') Edit
+		a(class='button destroy', href='/users/' + users[d].id) Delete
+		a(href='/users/' + users[d].id)
+			=users[d].name
+	- }

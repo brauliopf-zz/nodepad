@@ -2,7 +2,7 @@
 	h2 Register
 
 	form.users(method='post', action='/users')
-		!=partial('../partials/users/fields', { locals: { user: user } })
+		!=partial('../partials/users_fields', { locals: { user: user } })
 		div
 			input(type='submit', value='Register')
 			span \ or 
